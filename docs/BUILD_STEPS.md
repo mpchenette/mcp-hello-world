@@ -67,3 +67,39 @@ Every shell command and significant action executed while creating the FastMCP O
 63. `nl -ba .env.example` – captured .env example line numbers for citation in the final summary.
 64. `nl -ba requirements.txt` – captured dependency list line numbers for citation in the final summary.
 65. `python3 - <<'PY' ...` – rewrote docs/BUILD_STEPS.md to add the newest commands (this entry).
+66. `.venv/bin/python - <<'PY' ... from fastmcp.server import server` – attempted to inspect the internal FastMCP server run signature; the module does not expose a `Server` attribute.
+67. `.venv/bin/python - <<'PY' ... import fastmcp` – listed FastMCP exports to confirm available helpers for HTTP transports.
+68. `.venv/bin/python - <<'PY' ... from fastmcp import FastMCP` – checked the `FastMCP.run` signature to understand supported transport identifiers.
+69. `python3 - <<'PY' ... from fastmcp.server.transport import http` – tried to inspect HTTP transport classes with the system interpreter; failed because FastMCP is only installed in the virtualenv.
+70. `.venv/bin/python - <<'PY' ... from fastmcp.server.transport import http` – retried inside the virtualenv; discovered the transport module lives under the MCP SDK instead.
+71. `.venv/bin/python - <<'PY' ... pkgutil.walk_packages(fastmcp.__path__, prefix='fastmcp.')` – enumerated FastMCP submodules to locate transport implementations.
+72. `rg "class HTTPTransport" $(python3 -c 'import sysconfig; print(sysconfig.get_path("purelib"))')/fastmcp -n` – searched the global site-packages path for HTTP transport definitions; path mismatch caused the lookup to fail.
+73. `.venv/bin/python - <<'PY' ... sysconfig.get_path('purelib')` – retrieved the virtualenv’s site-packages directory for subsequent ripgrep queries.
+74. `rg "class HTTP" /Users/mpchenette/Code/mpchenette/mcp-hello-world/.venv/lib/python3.12/site-packages/fastmcp -n` – scanned the installed FastMCP package for HTTP transport references.
+75. `rg "streamable" /Users/mpchenette/Code/mpchenette/mcp-hello-world/.venv/lib/python3.12/site-packages -n | head` – searched dependencies for Streamable HTTP documentation and examples.
+76. `.venv/bin/python - <<'PY' ... import mcp.server.transports.http as http` – attempted to inspect transport classes from the underlying MCP SDK; module path unavailable.
+77. `.venv/bin/python - <<'PY' ... pkgutil.walk_packages(mcp.__path__, prefix='mcp.')` – tried to list MCP SDK packages for further inspection; aborted because the CLI extra (`typer`) is missing.
+78. `rg "mount_path" /Users/mpchenette/Code/mpchenette/mcp-hello-world/.venv/lib/python3.12/site-packages/mcp/server/fastmcp/server.py -n` – located where the server configures HTTP mount points.
+79. `sed -n '200,320p' /Users/mpchenette/Code/mpchenette/mcp-hello-world/.venv/lib/python3.12/site-packages/mcp/server/fastmcp/server.py` – reviewed the FastMCP `run` method implementation.
+80. `rg "run_streamable_http_async" /Users/mpchenette/Code/mpchenette/mcp-hello-world/.venv/lib/python3.12/site-packages/mcp/server/fastmcp/server.py -n` – jumped to the Streamable HTTP execution path.
+81. `sed -n '640,740p' /Users/mpchenette/Code/mpchenette/mcp-hello-world/.venv/lib/python3.12/site-packages/mcp/server/fastmcp/server.py` – inspected how the Starlette app is assembled for the Streamable transport.
+82. `rg "streamable_http_path" /Users/mpchenette/Code/mpchenette/mcp-hello-world/.venv/lib/python3.12/site-packages/mcp/server/fastmcp/server.py -n` – traced how the streamable endpoint path is propagated.
+83. `sed -n '120,200p' /Users/mpchenette/Code/mpchenette/mcp-hello-world/.venv/lib/python3.12/site-packages/mcp/server/fastmcp/server.py` – confirmed default constructor values for the streamable path and auth settings.
+84. `sed -n '880,1120p' /Users/mpchenette/Code/mpchenette/mcp-hello-world/.venv/lib/python3.12/site-packages/mcp/server/fastmcp/server.py` – examined how protected resource metadata routes are generated.
+85. `rg "resource_server_url" -n /Users/mpchenette/Code/mpchenette/mcp-hello-world/.venv/lib/python3.12/site-packages` – searched the installed packages for resource metadata helpers.
+86. `sed -n '1,200p' /Users/mpchenette/Code/mpchenette/mcp-hello-world/.venv/lib/python3.12/site-packages/mcp/server/auth/settings.py` – read the `AuthSettings` model to understand metadata expectations.
+87. `rg "class OAuthProvider" -n /Users/mpchenette/Code/mpchenette/mcp-hello-world/.venv/lib/python3.12/site-packages/fastmcp/server/auth/auth.py` – located the OAuth provider implementation for additional context.
+88. `sed -n '255,420p' /Users/mpchenette/Code/mpchenette/mcp-hello-world/.venv/lib/python3.12/site-packages/fastmcp/server/auth/auth.py` – reviewed how OAuth routes wrap the MCP endpoint.
+89. `rg "_get_resource_url" -n /Users/mpchenette/Code/mpchenette/mcp-hello-world/.venv/lib/python3.12/site-packages/fastmcp/server/auth/auth.py` – confirmed how resource metadata URLs are composed.
+90. `sed -n '100,200p' /Users/mpchenette/Code/mpchenette/mcp-hello-world/.venv/lib/python3.12/site-packages/fastmcp/server/auth/auth.py` – inspected the helper that injects `WWW-Authenticate` headers.
+91. `SERVER_BASE_URL=http://127.0.0.1:8000 GITHUB_CLIENT_ID=foo GITHUB_CLIENT_SECRET=bar .venv/bin/python - <<'PY' ...` – instantiated the auth provider to verify base URLs and registered routes.
+92. `apply_patch` – updated `app/server.py` to introduce a cached protected-resource metadata payload and a path-specific `.well-known` alias route.
+93. `SERVER_BASE_URL=http://127.0.0.1:8000 GITHUB_CLIENT_ID=foo GITHUB_CLIENT_SECRET=bar .venv/bin/python - <<'PY' ...` – imported the server module to ensure the new metadata logic exposes expected attributes.
+94. `.venv/bin/python - <<'PY' ... import fastmcp` – confirmed the global FastMCP settings object is available for reuse.
+95. `.venv/bin/python - <<'PY' ... print(fastmcp.settings.streamable_http_path)` – captured the default streamable endpoint for metadata wiring.
+96. `apply_patch` – refactored `app/server.py` to reuse the shared FastMCP settings and store the auth provider instance explicitly.
+97. `apply_patch` – fixed an editing typo introduced in the previous patch (removing an extra `+`).
+98. `apply_patch` – updated the README to direct MCP Inspector to `http://127.0.0.1:8000/mcp`.
+99. `tail -n 20 docs/BUILD_STEPS.md` – verified the build log includes the newly appended steps.
+100. `nl -ba app/server.py | sed -n '1,220p'` – captured updated line numbers for the server after adding the metadata alias route.
+101. `nl -ba README.md | sed -n '30,80p'` – gathered line numbers showing the revised Inspector connection instructions.

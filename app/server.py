@@ -6,8 +6,12 @@ import os
 from typing import List, Optional
 
 from dotenv import load_dotenv
-from fastmcp import FastMCP
+from fastmcp import FastMCP, settings as fastmcp_settings
 from fastmcp.server.auth.providers.github import GitHubProvider
+from mcp.server.streamable_http import MCP_PROTOCOL_VERSION_HEADER
+from mcp.shared.auth import ProtectedResourceMetadata
+from starlette.requests import Request
+from starlette.responses import JSONResponse, Response
 
 load_dotenv()
 
@@ -53,10 +57,46 @@ def build_auth_provider() -> GitHubProvider:
     )
 
 
+AUTH_PROVIDER = build_auth_provider()
+
 mcp = FastMCP(
     name=os.getenv("SERVER_NAME", "FastMCP OAuth Demo"),
-    auth=build_auth_provider(),
+    auth=AUTH_PROVIDER,
 )
+
+# Cache a copy of the OAuth protected resource metadata so we can expose
+# path-specific endpoints that MCP Inspector expects (e.g. /.well-known/.../mcp).
+_PROTECTED_RESOURCE_METADATA = ProtectedResourceMetadata(
+    resource=AUTH_PROVIDER._get_resource_url(fastmcp_settings.streamable_http_path),  # type: ignore[attr-defined]
+    authorization_servers=[AUTH_PROVIDER.issuer_url],  # type: ignore[attr-defined]
+    scopes_supported=AUTH_PROVIDER.required_scopes,  # type: ignore[attr-defined]
+)
+
+
+def _cors_headers() -> dict[str, str]:
+    return {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": MCP_PROTOCOL_VERSION_HEADER,
+    }
+
+
+@mcp.custom_route("/.well-known/oauth-protected-resource/{tail:path}", methods=["GET", "OPTIONS"])
+async def protected_resource_metadata_alias(request: Request) -> Response:
+    """Expose metadata for path-specific protected resource lookups.
+
+    MCP Inspector queries `/.well-known/oauth-protected-resource/<path>` in
+    addition to the base metadata endpoint. By serving the same document for
+    both routes we stay compatible with tools that expect the per-path form.
+    """
+
+    if request.method == "OPTIONS":
+        return Response(status_code=204, headers=_cors_headers())
+
+    return JSONResponse(
+        _PROTECTED_RESOURCE_METADATA.model_dump(mode="json"),
+        headers=_cors_headers(),
+    )
 
 
 @mcp.tool

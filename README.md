@@ -43,7 +43,7 @@ The server listens on `http://127.0.0.1:8000` by default. Update `MCP_HOST`/`MCP
 2. Open `http://localhost:6274` in your browser.
 3. Add a new MCP connection:
    - **Transport**: HTTP
-   - **Server URL**: `http://127.0.0.1:8000`
+   - **Server URL**: `http://127.0.0.1:8000/mcp`
 4. During the first tool call you'll be redirected to GitHub to authorize. Approve the OAuth request and you will return to the inspector.
 5. Invoke the `ping` tool to confirm you get a `"pong"` response.
 
