@@ -1,53 +1,80 @@
-"""Barebones FastMCP server secured with GitHub OAuth via the OAuth Proxy."""
+"""Barebones FastMCP server with GitHub OAuth 2.1 proxy."""
 
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import List, Optional
 
+from dotenv import load_dotenv
 from fastmcp import FastMCP
 from fastmcp.server.auth.providers.github import GitHubProvider
-from fastmcp.server.dependencies import get_access_token
+
+load_dotenv()
 
 
-def create_server() -> FastMCP:
-    """Instantiate the FastMCP server with GitHub OAuth protection."""
-    server_name = os.getenv("MCP_SERVER_NAME", "Barebones FastMCP Server")
+def _get_required_env(name: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise RuntimeError(
+            f"Missing required environment variable: {name}."
+            " Set it in your .env file or shell before starting the server."
+        )
+    return value
 
-    # GitHubProvider reads required settings (client id, secret, base URL, etc.)
-    # from FASTMCP_SERVER_AUTH_GITHUB_* environment variables.
-    auth_provider = GitHubProvider()
 
-    return FastMCP(name=server_name, auth=auth_provider)
+def _get_optional_list(name: str) -> Optional[List[str]]:
+    raw_value = os.getenv(name, "").strip()
+    if not raw_value:
+        return None
+    return [item.strip() for item in raw_value.split(",") if item.strip()]
 
 
-mcp = create_server()
+def _get_optional_scopes(name: str) -> Optional[List[str]]:
+    return _get_optional_list(name)
+
+
+def build_auth_provider() -> GitHubProvider:
+    """Configure the GitHub OAuth proxy using environment variables."""
+
+    allowed_redirects = _get_optional_list("ALLOWED_REDIRECT_URIS")
+    scopes = _get_optional_scopes("GITHUB_SCOPES")
+
+    kwargs: dict[str, object] = {}
+    if allowed_redirects:
+        kwargs["allowed_client_redirect_uris"] = allowed_redirects
+    if scopes:
+        kwargs["required_scopes"] = scopes
+
+    return GitHubProvider(
+        client_id=_get_required_env("GITHUB_CLIENT_ID"),
+        client_secret=_get_required_env("GITHUB_CLIENT_SECRET"),
+        base_url=_get_required_env("SERVER_BASE_URL"),
+        **kwargs,
+    )
+
+
+mcp = FastMCP(
+    name=os.getenv("SERVER_NAME", "FastMCP OAuth Demo"),
+    auth=build_auth_provider(),
+)
 
 
 @mcp.tool
-async def whoami() -> dict[str, Any]:
-    """Return basic information about the authenticated GitHub user."""
-    token = get_access_token()
+def ping() -> str:
+    """Return a static response so clients can confirm connectivity."""
 
-    if token is None:
-        return {
-            "authenticated": False,
-            "github_login": None,
-            "name": None,
-            "email": None,
-        }
+    return "pong"
 
-    claims = token.claims or {}
 
-    return {
-        "authenticated": True,
-        "github_login": claims.get("login"),
-        "name": claims.get("name"),
-        "email": claims.get("email"),
-    }
+def main() -> None:
+    """Start the FastMCP HTTP server."""
+
+    host = os.getenv("MCP_HOST", "127.0.0.1")
+    port = int(os.getenv("MCP_PORT", "8000"))
+
+    # HTTP transport is required for OAuth flows handled by FastMCP.
+    mcp.run(transport="http", host=host, port=port)
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("MCP_PORT", "8000"))
-    transport = os.getenv("MCP_TRANSPORT", "http")
-    mcp.run(transport=transport, port=port)
+    main()

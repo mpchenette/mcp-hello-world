@@ -1,50 +1,65 @@
-# mcp-hello-world
+# FastMCP OAuth Hello World
 
-This repository contains a barebones [FastMCP](https://gofastmcp.com/) server that exposes a single `whoami` tool and enforces GitHub OAuth 2.1 authentication through FastMCP's OAuth Proxy.
+A minimal FastMCP server that protects all tools behind a GitHub OAuth 2.1 proxy. The server exposes a single `ping` tool and is intentionally barebones so you can focus on the OAuth wiring.
 
 ## Prerequisites
 
-- Python 3.11+
-- GitHub OAuth application credentials (Client ID and Client Secret)
+- Python 3.12 (install with Homebrew: `brew install python@3.12`)
+- Node.js 22.7+ for the MCP Inspector (get it from <https://nodejs.org/en/download/package-manager>)
+- A GitHub OAuth App (create one at <https://github.com/settings/developers>)
 
 ## Setup
 
-1. Create a virtual environment and install dependencies:
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
-   ```
-2. Copy the example environment file and fill in your GitHub OAuth details:
-   ```bash
-   cp .env.example .env
-   ```
-3. Export the environment variables before running the server:
-   ```bash
-   set -a
-   source .env
-   set +a
-   ```
-
-## Running the server
-
-Start the HTTP transport (required for OAuth redirect flows):
-
 ```bash
-fastmcp run app/server.py:mcp --transport http --port 8000
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env  # then edit with your secrets
 ```
 
-Once running, connect with an MCP-compatible client that supports OAuth (for example the FastMCP client) and invoke the `whoami` tool to confirm the authenticated GitHub identity.
+### Configure OAuth
 
-## Configuration
+1. Create (or edit) a GitHub **OAuth App**.
+2. Set the **Homepage URL** to your server base URL (e.g. `http://localhost:8000`).
+3. Set the **Authorization callback URL** to `<SERVER_BASE_URL>/auth/callback` (default `http://localhost:8000/auth/callback`).
+4. Copy the **Client ID** and **Client Secret** into your `.env` file.
+5. (Optional) Adjust scopes and allowed redirect URIs in `.env`.
 
-Key environment variables:
+## Run the server
 
-- `MCP_SERVER_NAME` – optional display name for the server (default: `Barebones FastMCP Server`)
-- `MCP_PORT` – port exposed by the HTTP transport (default: `8000`)
-- `FASTMCP_SERVER_AUTH_GITHUB_CLIENT_ID` – GitHub OAuth app client ID (required)
-- `FASTMCP_SERVER_AUTH_GITHUB_CLIENT_SECRET` – GitHub OAuth app client secret (required)
-- `FASTMCP_SERVER_AUTH_GITHUB_BASE_URL` – public base URL for OAuth callbacks (required; use `http://localhost:8000` for local development)
-- `FASTMCP_SERVER_AUTH_GITHUB_REDIRECT_PATH` – optional callback path override (default: `/auth/callback`)
+```bash
+source .venv/bin/activate
+python -m app.server
+```
 
-Refer to [FastMCP's OAuth Proxy guide](https://gofastmcp.com/servers/auth/oauth-proxy) for full configuration details.
+The server listens on `http://127.0.0.1:8000` by default. Update `MCP_HOST`/`MCP_PORT` in `.env` if you need different values.
+
+## Test with MCP Inspector
+
+1. Start the inspector in another terminal:
+   ```bash
+   npx @modelcontextprotocol/inspector
+   ```
+2. Open `http://localhost:6274` in your browser.
+3. Add a new MCP connection:
+   - **Transport**: HTTP
+   - **Server URL**: `http://127.0.0.1:8000`
+4. During the first tool call you'll be redirected to GitHub to authorize. Approve the OAuth request and you will return to the inspector.
+5. Invoke the `ping` tool to confirm you get a `"pong"` response.
+
+## Environment variables
+
+| Name | Description |
+| --- | --- |
+| `SERVER_NAME` | Friendly display name for the MCP server. |
+| `SERVER_BASE_URL` | Public base URL used by FastMCP when constructing the OAuth callback. |
+| `MCP_HOST` / `MCP_PORT` | Bind address and port for the HTTP server. |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | Credentials from your GitHub OAuth App. |
+| `GITHUB_SCOPES` | Optional comma-separated scopes (default `user`). |
+| `ALLOWED_REDIRECT_URIS` | Optional comma-separated list of allowed client redirect URIs. |
+
+## Repository structure
+
+- `app/server.py` — FastMCP server entrypoint and OAuth configuration.
+- `.env.example` — Template of required configuration values.
+- `docs/BUILD_STEPS.md` — Full build log for this setup.
