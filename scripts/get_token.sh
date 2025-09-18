@@ -95,10 +95,10 @@ if [[ -n "$access_token" ]]; then
   if [[ "$INSPECTOR" -eq 1 ]]; then
     echo
     echo "Starting MCP Inspector..."
-    npx @modelcontextprotocol/inspector \
+    npx @modelcontextprotocol/inspector@0.16.7 \
       --transport http \
       --server-url "$INSPECTOR_URL" \
-      --header "Authorization: $access_token"
+      --header "Authorization: Bearer $access_token"
   fi
 else
   echo "Access token not found in response." >&2

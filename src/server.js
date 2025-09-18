@@ -14,6 +14,10 @@ const DEMO_CLIENT = {
   redirect_uris: [
     "http://localhost:5173/oauth/callback",
     "http://127.0.0.1:5173/oauth/callback",
+    "http://localhost:33418/oauth/callback",
+    "http://127.0.0.1:33418/oauth/callback",
+    "http://localhost:33418/",
+    "http://127.0.0.1:33418/",
   ],
   scope: "profile email",
 };
