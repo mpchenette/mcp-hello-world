@@ -1,0 +1,25 @@
+{
+  "name": "mcp-hello-world",
+  "version": "1.0.0",
+  "description": "Minimal FastMCP OAuth 2.1 demo server",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mpchenette/mcp-hello-world.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/mpchenette/mcp-hello-world/issues"
+  },
+  "homepage": "https://github.com/mpchenette/mcp-hello-world#readme",
+  "dependencies": {
+    "express": "^5.1.0",
+    "fastmcp": "^3.17.0"
+  }
+}
