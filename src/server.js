@@ -34,7 +34,10 @@ function startUpstreamOAuthServer() {
     }
 
     const redirectUri = typeof redirect_uri === "string" ? redirect_uri : DEMO_CLIENT.redirect_uris[0];
-    if (!DEMO_CLIENT.redirect_uris.includes(redirectUri)) {
+    const isAllowedRedirect =
+      DEMO_CLIENT.redirect_uris.includes(redirectUri) ||
+      redirectUri.startsWith("http://127.0.0.1:");
+    if (!isAllowedRedirect) {
       res.status(400).json({ error: "invalid_request", error_description: "Unknown redirect_uri" });
       return;
     }
