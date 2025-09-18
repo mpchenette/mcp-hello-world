@@ -30,4 +30,11 @@ Demo OAuth client credentials are printed on startup. The default redirect URIs 
 
 To integrate with a client, complete the OAuth authorization code flow against the proxy and include the issued Bearer access token in requests to the FastMCP server.
 
+```bash
+./scripts/get_token.sh             # prints authorize URL, prompts for code, displays token
+./scripts/get_token.sh --inspector # same, then launches MCP Inspector with the token
+```
+
+YOU WILL NEED TO MANUALLY COPY AND PASTE THE BEARER TOKEN INTO THE INSPECTOR WEB UI.
+
 Press `Ctrl+C` to stop all services.
